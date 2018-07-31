@@ -40,7 +40,7 @@ public enum RxCocoaURLError
 }
 
 public extension Decodable {
-    public static var rxJSONDecoder: JSONDecoder {
+    static var rxJSONDecoder: JSONDecoder {
         return JSONDecoder()
     }
 }
