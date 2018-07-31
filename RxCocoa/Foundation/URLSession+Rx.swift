@@ -39,6 +39,12 @@ public enum RxCocoaURLError
     case deserializationError(error: Swift.Error)
 }
 
+public extension Decodable {
+    static var rxJSONDecoder: JSONDecoder {
+        return JSONDecoder()
+    }
+}
+
 extension RxCocoaURLError
     : CustomDebugStringConvertible {
     /// A textual representation of `self`, suitable for debugging.
@@ -238,6 +244,54 @@ extension Reactive where Base: URLSession {
     */
     public func json(url: Foundation.URL) -> Observable<Any> {
         return json(request: URLRequest(url: url))
+    }
+
+    /**
+     Observable sequence of response Decodable for URL request.
+
+     Performing of request starts after observer is subscribed and not after invoking this method.
+
+     **URL requests will be performed per subscribed observer.**
+
+     Any error during fetching of the response will cause observed sequence to terminate with error.
+
+     If response is not HTTP response with status code in the range of `200 ..< 300`, sequence
+     will terminate with `(RxCocoaErrorDomain, RxCocoaError.NetworkError)`.
+
+     If there is an error during JSONDecoder deserialization observable sequence will fail with that error.
+
+     - parameter request: URL request.
+     - returns: Observable sequence of response Decodable.
+     */
+    public func decodable<Response: Decodable>(request: URLRequest) -> Observable<Response> {
+        return data(request: request).map { (data) -> Response in
+            do {
+                return try Response.rxJSONDecoder.decode(Response.self, from: data)
+            } catch let error {
+                throw RxCocoaURLError.deserializationError(error: error)
+            }
+        }
+    }
+
+    /**
+     Observable sequence of response Decodable for GET request with `URL`.
+
+     Performing of request starts after observer is subscribed and not after invoking this method.
+
+     **URL requests will be performed per subscribed observer.**
+
+     Any error during fetching of the response will cause observed sequence to terminate with error.
+
+     If response is not HTTP response with status code in the range of `200 ..< 300`, sequence
+     will terminate with `(RxCocoaErrorDomain, RxCocoaError.NetworkError)`.
+
+     If there is an error during JSONDecoder deserialization observable sequence will fail with that error.
+
+     - parameter url: URL of `NSURLRequest` request.
+     - returns: Observable sequence of response Decodable.
+     */
+    public func decodable<Response: Decodable>(url: Foundation.URL) -> Observable<Response> {
+        return decodable(request: URLRequest(url: url))
     }
 }
 
